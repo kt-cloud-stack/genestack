@@ -6,6 +6,7 @@ on:
       - base-helm-configs/barbican/**
       - base-kustomize/barbican/**
       - .github/workflows/helm-barbican.yaml
+  workflow_dispatch:
 jobs:
   helm:
     strategy:
