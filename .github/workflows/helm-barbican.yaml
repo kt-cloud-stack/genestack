@@ -5,8 +5,7 @@ on:
     paths:
       - base-helm-configs/barbican/**
       - base-kustomize/barbican/**
-      - .github/workflows/helm-barbican.yml
-  workflow_dispatch:
+      - .github/workflows/helm-barbican.yaml
 jobs:
   helm:
     strategy:
@@ -49,7 +48,6 @@ jobs:
             -f ${{ github.workspace }}/base-helm-configs/barbican/barbican-helm-overrides.yaml \
             --post-renderer ${{ github.workspace }}/base-kustomize/kustomize.sh \
             --post-renderer-args barbican/${{ matrix.overlays }} > /tmp/rendered.yaml
-          cat /tmp/rendered.yaml
       - name: Return helm Build
         uses: actions/upload-artifact@v4
         with:
