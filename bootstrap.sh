@@ -32,7 +32,7 @@ apt update
 DEBIAN_FRONTEND=noninteractive \
   apt-get -o "Dpkg::Options::=--force-confdef" \
           -o "Dpkg::Options::=--force-confold" \
-          -qy install make git python3-pip python3-venv jq make > ~/genestack-base-package-install.log 2>&1
+          -qy install git python3-pip python3-venv python3-dev jq build-essential > ~/genestack-base-package-install.log 2>&1
 
 if [ $? -gt 1 ]; then
   error "Check for ansible errors at ~/genestack-base-package-install.log"
@@ -118,7 +118,7 @@ done
 
 # Symlink /opt/genestack/base-kustomize/kustomize.sh to
 # /etc/genestack/kustomize/kustomize.sh
-ln -s $base_source_dir/kustomize.sh $base_target_dir/kustomize.sh
+ln -sf $base_source_dir/kustomize.sh $base_target_dir/kustomize.sh
 
 # Ensure kustomization.yaml exists in each
 # service base/overlay directory
@@ -151,12 +151,33 @@ for service in "$overlay_target_dir"/*; do
   fi
 done
 
-# Copy base-helm-configs if it does not already exist
+#!/bin/bash
+
 if [ ! -d "/etc/genestack/helm-configs" ]; then
-  cp -r /opt/genestack/base-helm-configs /etc/genestack/helm-configs
-  success "Copied helm-configs to /etc/genestack/"
+  mkdir -p /etc/genestack/helm-configs
+  success "Created /etc/genestack/helm-configs"
 else
-  message "helm-configs already exists in /etc/genestack, skipping copy."
+  message "/etc/genestack/helm-configs already exists, skipping creation."
+fi
+
+for src_dir in /opt/genestack/base-helm-configs/*; do
+  if [ -d "$src_dir" ]; then
+    dir_name=$(basename "$src_dir")
+    dest_dir="/etc/genestack/helm-configs/$dir_name"
+    if [ ! -d "$dest_dir" ]; then
+      mkdir -p "$dest_dir"
+      success "Created $dest_dir"
+    else
+      message "$dest_dir already exists, skipping creation."
+    fi
+  fi
+done
+
+if [ ! -d "/etc/genestack/helm-configs/global_overrides" ]; then
+  mkdir -p /etc/genestack/helm-configs/global_overrides
+  echo "Created /etc/genestack/helm-configs/global_overrides"
+else
+  echo "/etc/genestack/helm-configs/global_overrides already exists, skipping creation."
 fi
 
 # Copy manifests if it does not already exist

@@ -92,10 +92,15 @@ ceilometer_keystone_admin_password=$(generate_password 32)
 ceilometer_keystone_test_password=$(generate_password 32)
 ceilometer_rabbitmq_password=$(generate_password 32)
 memcached_shared_secret=$(generate_password 32)
+grafana_secret=$(generate_password 32)
+grafana_root_secret=$(generate_password 32)
+ironic-db-password=$(generate_password 32)
+ironic-rabbitmq-password=$(generate_password 32)
 
 OUTPUT_FILE="/etc/genestack/kubesecrets.yaml"
 
 cat <<EOF > $OUTPUT_FILE
+---
 apiVersion: v1
 kind: Secret
 metadata:
@@ -308,7 +313,7 @@ metadata:
 type: Opaque
 data:
   public_key: $(echo -n $nova_ssh_public_key | base64 -w0)
-  private_key: $(echo -n $nova_ssh_private_key | base64 -w0)
+  private_key: $(echo -n "$nova_ssh_private_key" | base64 -w0)
 ---
 apiVersion: v1
 kind: Secret
@@ -318,6 +323,25 @@ metadata:
 type: Opaque
 data:
   password: $(echo -n $ironic_admin_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ironic-db-password
+  namespace: openstack
+type: Opaque
+data:
+  password: $(echo -n $ironic_db_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ironic-rabbitmq-password
+  namespace: openstack
+type: Opaque
+data:
+  username: $(echo -n "ironic" | base64)
+  password: $(echo -n $ironic_rabbitmq_password | base64 -w0)
 ---
 apiVersion: v1
 kind: Secret
@@ -581,6 +605,7 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
+  username: $(echo -n "ceilometer" | base64)
   password: $(echo -n $ceilometer_rabbitmq_password | base64 -w0)
 ---
 apiVersion: v1
@@ -591,6 +616,42 @@ metadata:
 type: Opaque
 data:
   memcache_secret_key: $(echo -n $memcached_shared_secret | base64 -w0)
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    kubernetes.io/metadata.name: grafana
+    name: grafana
+  name: grafana
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: grafana-db
+  namespace: grafana
+type: Opaque
+data:
+  password: $(echo -n $grafana_secret | base64 -w0)
+  root-password: $(echo -n $grafana_root_secret | base64 -w0)
+  username: $(echo -n grafana | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: etcd-backup-secrets
+  namespace: openstack
+type: Opaque
+data:
+  ACCESS_KEY: $(echo -n "" | base64)
+  SECRET_KEY: $(echo -n "" | base64)
+  S3_HOST: $(echo -n "" | base64)
+  S3_REGION: $(echo -n "$region" | base64)
+  ETCDCTL_API: $(echo -n "3" | base64)
+  ETCDCTL_ENDPOINTS: $(echo -n "https://127.0.0.1:2379" | base64 -w0)
+  ETCDCTL_CACERT: $(echo -n "/etc/ssl/etcd/ssl/ca.pem" | base64 -w0)
+  ETCDCTL_CERT: $(echo -n "" | base64)
+  ETCDCTL_KEY: $(echo -n "" | base64)
 EOF
 
 rm nova_ssh_key nova_ssh_key.pub
